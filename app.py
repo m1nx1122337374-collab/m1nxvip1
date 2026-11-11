@@ -1,35 +1,31 @@
 # ═══════════════════════════════════════════════════════════════════
-#   👑 M1NX PREMIUM SYSTEM — FULL WORKING CODE
+#   👑 M1NX PREMIUM — NO LOGIN DIRECT ACCESS SYSTEM
 #   Owner    : M1NXGAMINGVIP
 #   Telegram : @M1NXGAMINGVIP
-#   Bio      : @M1NXGAMINGVIP
 #   Prefix   : M1NX_
+#   Bio      : @M1NXGAMINGVIP
 # ═══════════════════════════════════════════════════════════════════
 
-import os, sys, json, time, uuid, random, string, hashlib, hmac, socket, threading, asyncio, sqlite3
+import os, sys, json, time, uuid, random, string, hashlib, hmac, socket, threading, sqlite3
 from datetime import datetime, timezone
-from functools import wraps
 
 # ═══════════════════════════ CONFIG ═══════════════════════════
-OWNER_NAME        = "M1NXGAMINGVIP"
-OWNER_TG          = "@M1NXGAMINGVIP"
-BRAND_NAME        = "M1NX PREMIUM"
-CUSTOM_PREFIX     = "M1NX_"
-CUSTOM_BIO        = "[b][c][FFD700]TELEGRAM DM : @M1NXGAMINGVIP"
+OWNER_NAME     = "M1NXGAMINGVIP"
+OWNER_TG       = "@M1NXGAMINGVIP"
+BRAND_NAME     = "M1NX PREMIUM"
+CUSTOM_PREFIX  = "M1NX_"
+CUSTOM_BIO     = "[b][c][FFD700]TELEGRAM DM : @M1NXGAMINGVIP"
 
-ADMIN_USER        = os.environ.get("ADMIN_USER", "m1nx")
-ADMIN_PASS        = os.environ.get("ADMIN_PASS", "m1nx123")
-SECRET_KEY        = os.environ.get("SECRET_KEY", "m1nx-premium-secret-2024")
-TG_BOT_TOKEN      = os.environ.get("TG_BOT_TOKEN", "")     # Render env এ বসাবেন
-TG_ADMIN_ID       = os.environ.get("TG_ADMIN_ID", "")      # আপনার Telegram numeric ID
+SECRET_KEY     = os.environ.get("SECRET_KEY", "m1nx-premium-secret-2024")
+TG_BOT_TOKEN   = os.environ.get("TG_BOT_TOKEN", "")
 
-DB_PATH           = os.environ.get("DB_PATH", "data/m1nx.db")
-DOWNLOAD_DIR      = os.environ.get("DOWNLOAD_DIR", "data/downloads")
+DB_PATH        = os.environ.get("DB_PATH", "data/m1nx.db")
+DOWNLOAD_DIR   = os.environ.get("DOWNLOAD_DIR", "data/downloads")
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# ═══════════════════════ DNS FIX (GARENA) ═══════════════════════
+# ═══════════════════════ DNS FIX ═══════════════════════
 _ORIG_GETADDRINFO = socket.getaddrinfo
 def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     if host == "100067.connect.garena.com":
@@ -44,7 +40,7 @@ import requests, urllib3
 urllib3.disable_warnings()
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
-from flask import Flask, request, jsonify, render_template_string, redirect, session, send_from_directory, flash
+from flask import Flask, request, jsonify, render_template_string, redirect, send_from_directory, flash
 from flask_socketio import SocketIO
 
 app = Flask(__name__)
@@ -175,21 +171,19 @@ def identify_device(req):
 
 # ═══════════════════════ TELEGRAM BOT ═══════════════════════
 _tg_last_update = 0
-_tg_lock = threading.Lock()
 
 def tg_api(method, **params):
     if not TG_BOT_TOKEN: return None
     try:
-        r = requests.post(f"https://api.telegram.org/bot{TG_BOT_TOKEN}/{method}",
-                          json=params, timeout=15)
+        r = requests.post(f"https://api.telegram.org/bot{TG_BOT_TOKEN}/{method}", json=params, timeout=15)
         return r.json()
     except Exception:
         return None
 
 def tg_send(chat_id, text, markdown=True):
-    params = {"chat_id": chat_id, "text": text}
-    if markdown: params["parse_mode"] = "Markdown"
-    return tg_api("sendMessage", **params)
+    p = {"chat_id": chat_id, "text": text}
+    if markdown: p["parse_mode"] = "Markdown"
+    return tg_api("sendMessage", **p)
 
 def tg_send_doc(chat_id, filepath, caption=""):
     if not TG_BOT_TOKEN or not os.path.exists(filepath): return None
@@ -203,19 +197,16 @@ def tg_send_doc(chat_id, filepath, caption=""):
         return None
 
 def tg_help_text():
-    return (
-        f"*{BRAND_NAME}*\n"
-        f"Owner: {OWNER_NAME}\n\n"
-        "*Available Commands:*\n"
-        "/start - Welcome message\n"
-        "/help - Show commands\n"
-        "/stats - System statistics\n"
-        "/devices - List all devices\n"
-        "/accounts - Recent accounts\n"
-        "/generate <count> <BD|IND> - Generate accounts\n"
-        "/files - Download account files\n"
-        "/status - System status\n"
-    )
+    return (f"*{BRAND_NAME}*\nOwner: {OWNER_NAME}\n\n"
+            "*Commands:*\n"
+            "/start - Welcome\n"
+            "/help - Commands list\n"
+            "/stats - System statistics\n"
+            "/devices - List all devices\n"
+            "/accounts - Recent accounts\n"
+            "/generate <count> <BD|IND> - Generate accounts\n"
+            "/files - Download account files\n"
+            "/status - System status\n")
 
 def tg_handle_update(upd):
     try:
@@ -229,62 +220,34 @@ def tg_handle_update(upd):
         cmd = parts[0].lower().split("@")[0]
 
         if cmd == "/start":
-            tg_send(chat_id,
-                f"*Welcome to {BRAND_NAME}*\n\n"
-                f"Hello {user}!\n"
-                f"Owner: {OWNER_NAME}\n"
-                f"Telegram: {OWNER_TG}\n\n"
-                f"Use /help to see commands."
-            )
+            tg_send(chat_id, f"*Welcome to {BRAND_NAME}*\n\nHello {user}!\nOwner: {OWNER_NAME}\nTelegram: {OWNER_TG}\n\nUse /help to see commands.")
         elif cmd == "/help":
             tg_send(chat_id, tg_help_text())
         elif cmd == "/stats":
-            devs = db.devices()
-            accs = db.accounts(limit=99999)
-            txt = (f"*{BRAND_NAME} STATS*\n\n"
-                   f"Devices: {len(devs)}\n"
-                   f"Accounts: {len(accs)}\n"
-                   f"Total Generated: {sum(d['total_generated'] for d in devs)}\n\n"
-                   f"Owner: {OWNER_NAME}")
-            tg_send(chat_id, txt)
+            devs = db.devices(); accs = db.accounts(limit=99999)
+            tg_send(chat_id, f"*{BRAND_NAME} STATS*\n\nDevices: {len(devs)}\nAccounts: {len(accs)}\nTotal Generated: {sum(d['total_generated'] for d in devs)}\n\nOwner: {OWNER_NAME}")
         elif cmd == "/devices":
             devs = db.devices()
             if not devs:
-                tg_send(chat_id, "No devices registered yet.")
-                return
+                tg_send(chat_id, "No devices yet."); return
             txt = f"*Devices ({len(devs)})*\n\n"
             for d in devs[:15]:
-                txt += (f"ID: `{d['device_id']}`\n"
-                        f"Name: {d['name']} | {d['platform']}\n"
-                        f"Action: {d['current_action']}\n"
-                        f"Generated: {d['total_generated']}\n"
-                        f"Last Seen: {d['last_seen']}\n\n")
+                txt += f"ID: `{d['device_id']}`\nName: {d['name']} | {d['platform']}\nAction: {d['current_action']}\nGenerated: {d['total_generated']}\nLast Seen: {d['last_seen']}\n\n"
             tg_send(chat_id, txt)
         elif cmd == "/accounts":
             accs = db.accounts(limit=10)
             if not accs:
-                tg_send(chat_id, "No accounts yet.")
-                return
-            txt = f"*Recent Accounts (10)*\n\n"
+                tg_send(chat_id, "No accounts yet."); return
+            txt = "*Recent Accounts*\n\n"
             for a in accs:
-                txt += (f"`{a['account_id']}` | {a['name']}\n"
-                        f"UID: `{a['uid']}` | {a['region']}\n"
-                        f"Device: {a['device_id']}\n\n")
+                txt += f"`{a['account_id']}` | {a['name']}\nUID: `{a['uid']}` | {a['region']}\nDevice: {a['device_id']}\n\n"
             tg_send(chat_id, txt)
         elif cmd == "/status":
-            tg_send(chat_id,
-                f"*{BRAND_NAME} STATUS*\n\n"
-                f"System: ONLINE\n"
-                f"Owner: {OWNER_NAME}\n"
-                f"Telegram: {OWNER_TG}\n"
-                f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            tg_send(chat_id, f"*{BRAND_NAME} STATUS*\n\nSystem: ONLINE\nOwner: {OWNER_NAME}\nTelegram: {OWNER_TG}\nTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         elif cmd == "/files":
-            # Generate files and send
             all_accs = db.accounts(limit=99999)
             if not all_accs:
-                tg_send(chat_id, "No accounts to export.")
-                return
+                tg_send(chat_id, "No accounts to export."); return
             path = os.path.join(DOWNLOAD_DIR, "m1nx_all_accounts.txt")
             with open(path, "w", encoding="utf-8") as f:
                 for a in all_accs:
@@ -292,24 +255,21 @@ def tg_handle_update(upd):
             tg_send_doc(chat_id, path, caption=f"All accounts ({len(all_accs)})")
         elif cmd == "/generate":
             if len(parts) < 2:
-                tg_send(chat_id, "Usage: /generate <count> <BD|IND>\nExample: /generate 5 BD")
-                return
+                tg_send(chat_id, "Usage: /generate <count> <BD|IND>\nExample: /generate 5 BD"); return
             try:
                 count = int(parts[1])
                 region = (parts[2] if len(parts) > 2 else "BD").upper()
                 if region not in ("BD", "IND"): region = "BD"
                 if count <= 0 or count > 50:
-                    tg_send(chat_id, "Count must be 1-50")
-                    return
+                    tg_send(chat_id, "Count must be 1-50"); return
             except ValueError:
-                tg_send(chat_id, "Invalid count")
-                return
+                tg_send(chat_id, "Invalid count"); return
             did = f"M1NX-TG-{chat_id}"
             db.reg_device(did, f"Telegram-{user}", "Telegram", "0.0.0.0", "TelegramBot")
             threading.Thread(target=run_generation, args=(did, region, count, chat_id), daemon=True).start()
-            tg_send(chat_id, f"Generation started: {count} x {region}\nJob running on device `{did}`\n\nYou will get updates here.")
+            tg_send(chat_id, f"Generation started: {count} x {region}\nDevice: `{did}`\n\nUpdates will arrive here.")
         else:
-            tg_send(chat_id, f"Unknown command. Use /help")
+            tg_send(chat_id, "Unknown command. Use /help")
     except Exception as e:
         print(f"[TG] Handle error: {e}")
 
@@ -625,7 +585,6 @@ def upload_bio(jwt, url, retries=3):
     return False
 
 def generate_account(device_id, region="BD"):
-    """একটা একাউন্ট তৈরি করে। ব্যর্থ হলে None ফেরত দেয়।"""
     ts, ts_str = srv_time()
     uid, pw = guest_reg()
     if not uid: return None
@@ -652,21 +611,18 @@ def generate_account(device_id, region="BD"):
     return acc
 
 def run_generation(device_id, region, count, tg_chat=None):
-    """Background generation job — keeps retrying failed accounts."""
     jid = db.create_job(device_id, region, count)
     db.add_log(device_id, "INFO", f"Job #{jid} started: {count} x {region}")
     db.update_device_action(device_id, f"Generating {count} x {region}", region)
     if tg_chat: tg_send(tg_chat, f"Job #{jid} started: {count} x {region}")
 
-    success = 0
-    fail = 0
-    attempts = 0
-    max_attempts = count * 3  # 3x retry budget
+    success = 0; fail = 0; attempts = 0
+    max_attempts = count * 3
 
     while success < count and attempts < max_attempts:
         attempts += 1
         try:
-            db.update_device_action(device_id, f"Creating {success+1}/{count} (attempt {attempts})", region)
+            db.update_device_action(device_id, f"Creating {success+1}/{count} (try {attempts})", region)
             acc = generate_account(device_id, region)
             if acc:
                 success += 1
@@ -676,14 +632,14 @@ def run_generation(device_id, region, count, tg_chat=None):
                 socketio.emit("account_created", acc)
                 db.update_job(jid, success=success, fail=fail)
                 if tg_chat and (success % 3 == 0 or success == count):
-                    tg_send(tg_chat, f"Progress: {success}/{count} done")
+                    tg_send(tg_chat, f"Progress: {success}/{count}")
             else:
                 fail += 1
                 msg = f"Attempt {attempts} failed (retrying)"
                 db.add_log(device_id, "FAIL", msg)
                 socketio.emit("log", {"level":"FAIL","message":msg,"device":device_id,"ts":db.now()})
                 db.update_job(jid, success=success, fail=fail)
-                time.sleep(0.5)
+                time.sleep(0.4)
         except Exception as e:
             fail += 1
             db.add_log(device_id, "FAIL", f"Error: {e}")
@@ -691,26 +647,22 @@ def run_generation(device_id, region, count, tg_chat=None):
     status = "COMPLETED" if success >= count else "PARTIAL"
     db.update_job(jid, status=status)
     db.update_device_action(device_id, "Idle", region)
-    db.add_log(device_id, "INFO", f"Job #{jid} {status}: {success}/{count} success, {fail} fails")
+    db.add_log(device_id, "INFO", f"Job #{jid} {status}: {success}/{count} ok, {fail} fails")
     _refresh_download_files()
     if tg_chat:
-        tg_send(tg_chat, f"Job #{jid} {status}\nSuccess: {success}/{count}\nFailed attempts: {fail}")
+        tg_send(tg_chat, f"Job #{jid} {status}\nSuccess: {success}/{count}\nFailed: {fail}")
         if success > 0:
             path = os.path.join(DOWNLOAD_DIR, f"{device_id}.txt")
             if os.path.exists(path):
-                tg_send_doc(tg_chat, path, caption=f"{device_id} accounts ({success})")
+                tg_send_doc(tg_chat, path, caption=f"{device_id} ({success} accounts)")
 
 def _refresh_download_files():
-    """সব ফাইল রিফ্রেশ করে (auto download system)"""
     all_accs = db.accounts(limit=99999)
-    # Combined JSON
     with open(os.path.join(DOWNLOAD_DIR, "m1nx_all_accounts.json"), "w", encoding="utf-8") as f:
         json.dump(all_accs, f, indent=2, ensure_ascii=False)
-    # Combined TXT
     with open(os.path.join(DOWNLOAD_DIR, "m1nx_all_accounts.txt"), "w", encoding="utf-8") as f:
         for a in all_accs:
             f.write(f"[{a['region']}] UID:{a['uid']} | ACC:{a['account_id']} | NAME:{a['name']} | PASS:{a['password']} | DEV:{a['device_id']} | {a['created_at']}\n")
-    # Per device
     for d in db.devices():
         dev_accs = db.accounts(d["device_id"], limit=99999)
         if dev_accs:
@@ -718,32 +670,32 @@ def _refresh_download_files():
                 for a in dev_accs:
                     f.write(f"[{a['region']}] UID:{a['uid']} | ACC:{a['account_id']} | NAME:{a['name']} | PASS:{a['password']} | {a['created_at']}\n")
 
-# ═══════════════════════ HTML TEMPLATES ═══════════════════════
+# ═══════════════════════ HTML TEMPLATE ═══════════════════════
 BASE_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ title }} - M1NX PREMIUM</title>
+<title>__TITLE__ | M1NX PREMIUM</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;background:radial-gradient(circle at top,#141B3C 0%,#0A0E27 60%);color:#E8EAF6;min-height:100vh;line-height:1.6}
-.nav{background:rgba(10,14,39,0.95);backdrop-filter:blur(12px);border-bottom:2px solid #FFD700;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 4px 30px rgba(0,0,0,0.4)}
+.nav{background:rgba(10,14,39,0.95);backdrop-filter:blur(12px);border-bottom:2px solid #FFD700;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 4px 30px rgba(0,0,0,0.4);flex-wrap:wrap;gap:12px}
 .brand{display:flex;align-items:center;gap:10px;font-family:'Orbitron',sans-serif;font-weight:900;font-size:20px;color:#FFD700}
 .brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FF6B6B);display:flex;align-items:center;justify-content:center;font-weight:900;color:#0A0E27;font-size:18px;box-shadow:0 0 20px rgba(255,215,0,0.5)}
 .brand-text{display:flex;flex-direction:column;line-height:1.1}
 .brand-text small{font-size:10px;color:#00D9FF;font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px}
 .nav-links{display:flex;gap:6px;flex-wrap:wrap}
-.nav-links a{color:#8B92B8;text-decoration:none;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;transition:all 0.25s;display:flex;align-items:center;gap:6px}
+.nav-links a{color:#8B92B8;text-decoration:none;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;transition:all 0.25s}
 .nav-links a:hover,.nav-links a.active{color:#FFD700;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3)}
 .dot{width:6px;height:6px;border-radius:50%;background:#00D9FF;display:inline-block}
 .container{max-width:1400px;margin:0 auto;padding:24px}
 .card{background:linear-gradient(135deg,rgba(20,27,60,0.85),rgba(30,40,80,0.85));border:1px solid rgba(255,215,0,0.2);border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
 .card-title{font-family:'Orbitron',sans-serif;color:#FFD700;font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;letter-spacing:1px}
 .card-title::before{content:'';width:4px;height:18px;background:linear-gradient(180deg,#FFD700,#FF6B6B);border-radius:2px}
-.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
 .stat{background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,107,107,0.08));border:1px solid rgba(255,215,0,0.25);border-radius:12px;padding:18px;position:relative;overflow:hidden}
 .stat::after{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(255,215,0,0.15),transparent);border-radius:50%}
 .stat-label{color:#8B92B8;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:6px}
@@ -752,7 +704,6 @@ body{font-family:'Inter',sans-serif;background:radial-gradient(circle at top,#14
 .btn{background:linear-gradient(135deg,#FFD700,#FFA000);color:#0A0E27;border:none;padding:10px 20px;border-radius:8px;font-family:'Orbitron',sans-serif;font-weight:700;cursor:pointer;font-size:12px;letter-spacing:1px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.25s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(255,215,0,0.35)}
 .btn-success{background:linear-gradient(135deg,#00E676,#00C853)}
-.btn-danger{background:linear-gradient(135deg,#FF5252,#D32F2F);color:#fff}
 .btn-sm{padding:6px 12px;font-size:11px}
 .input,select{background:rgba(10,14,39,0.9);border:1px solid rgba(255,215,0,0.25);border-radius:8px;padding:11px 14px;color:#E8EAF6;width:100%;font-size:14px;font-family:'Inter',sans-serif;transition:all 0.25s}
 .input:focus,select:focus{outline:none;border-color:#FFD700;box-shadow:0 0 0 3px rgba(255,215,0,0.1)}
@@ -763,16 +714,15 @@ label{color:#8B92B8;font-size:11px;text-transform:uppercase;letter-spacing:1.5px
 .table tr:hover{background:rgba(255,215,0,0.04)}
 .badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:inline-block}
 .badge-success{background:rgba(0,230,118,0.2);color:#00E676;border:1px solid rgba(0,230,118,0.4)}
-.badge-danger{background:rgba(255,82,82,0.2);color:#FF5252;border:1px solid rgba(255,82,82,0.4)}
-.badge-warning{background:rgba(255,179,0,0.2);color:#FFB300;border:1px solid rgba(255,179,0,0.4)}
 .badge-info{background:rgba(0,217,255,0.2);color:#00D9FF;border:1px solid rgba(0,217,255,0.4)}
-.hero{text-align:center;padding:40px 20px}
+.badge-warning{background:rgba(255,179,0,0.2);color:#FFB300;border:1px solid rgba(255,179,0,0.4)}
+.hero{text-align:center;padding:36px 20px}
 .hero-logo{width:90px;height:90px;margin:0 auto 20px;border-radius:24px;background:linear-gradient(135deg,#FFD700,#FF6B6B);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;color:#0A0E27;box-shadow:0 0 60px rgba(255,215,0,0.5);animation:pulse 2.5s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-.hero h1{font-family:'Orbitron',sans-serif;font-size:36px;color:#FFD700;letter-spacing:2px;margin-bottom:8px}
+.hero h1{font-family:'Orbitron',sans-serif;font-size:34px;color:#FFD700;letter-spacing:2px;margin-bottom:8px}
 .hero p{color:#8B92B8;font-size:14px;margin-bottom:16px}
 .tg-link{color:#00D9FF;text-decoration:none;border-bottom:1px solid #00D9FF;font-weight:600}
-.flash{padding:12px 18px;border-radius:10px;margin-bottom:16px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+.flash{padding:12px 18px;border-radius:10px;margin-bottom:16px;font-weight:600;font-size:13px}
 .flash.success{background:rgba(0,230,118,0.12);border:1px solid #00E676;color:#00E676}
 .flash.error{background:rgba(255,82,82,0.12);border:1px solid #FF5252;color:#FF5252}
 .footer{text-align:center;padding:30px 20px;color:#8B92B8;font-size:12px;border-top:1px solid rgba(255,215,0,0.1);margin-top:40px}
@@ -785,114 +735,58 @@ label{color:#8B92B8;font-size:11px;text-transform:uppercase;letter-spacing:1.5px
 .log-line.SUCCESS{color:#00E676}
 .log-line.FAIL{color:#FF5252}
 .log-line.INFO{color:#FFD700}
-.log-line.WARN{color:#FFB300}
 .action-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-@media(max-width:700px){.nav{flex-direction:column;gap:10px}.nav-links{width:100%;justify-content:center}.brand{font-size:16px}}
+@media(max-width:700px){.nav{flex-direction:column}.nav-links{width:100%;justify-content:center}.brand{font-size:16px}.hero h1{font-size:24px}}
 </style>
 </head>
 <body>
 <nav class="nav">
   <div class="brand">
     <div class="brand-logo">M</div>
-    <div class="brand-text">M1NX PREMIUM<small>OWNER : M1NXGAMINGVIP</small></div>
+    <div class="brand-text">M1NX PREMIUM<small>OWNER : __OWNER__</small></div>
   </div>
   <div class="nav-links">
-    <a href="/" class="{{ 'active' if page=='dash' }}">Dashboard</a>
-    <a href="/devices" class="{{ 'active' if page=='dev' }}">Devices</a>
-    <a href="/accounts" class="{{ 'active' if page=='acc' }}">Accounts</a>
-    <a href="/generate" class="{{ 'active' if page=='gen' }}">Generate</a>
-    <a href="/logs" class="{{ 'active' if page=='log' }}">Logs</a>
-    <a href="/download" class="{{ 'active' if page=='dl' }}">Download</a>
-    <a href="/logout" style="color:#FF5252">Logout</a>
+    <a href="/" class="__ACT_dash__">Dashboard</a>
+    <a href="/devices" class="__ACT_dev__">Devices</a>
+    <a href="/accounts" class="__ACT_acc__">Accounts</a>
+    <a href="/generate" class="__ACT_gen__">Generate</a>
+    <a href="/logs" class="__ACT_log__">Logs</a>
+    <a href="/download" class="__ACT_dl__">Download</a>
   </div>
 </nav>
 <div class="container">
-  {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% for cat,msg in msgs %}<div class="flash {{cat}}">{{msg}}</div>{% endfor %}
-  {% endwith %}
-  {{ content|safe }}
+  __FLASH__
+  __CONTENT__
 </div>
 <footer class="footer">
-  <strong>M1NX PREMIUM</strong> &nbsp;|&nbsp; Owner : M1NXGAMINGVIP &nbsp;|&nbsp;
-  Telegram : <a href="https://t.me/M1NXGAMINGVIP">@M1NXGAMINGVIP</a>
-  <div style="margin-top:8px;font-size:11px;color:#666">All Rights Reserved &copy; {{year}}</div>
+  <strong>M1NX PREMIUM</strong> &nbsp;|&nbsp; Owner : __OWNER__ &nbsp;|&nbsp;
+  Telegram : <a href="https://t.me/__OWNER_TG_CLEAN__">__OWNER_TG__</a>
+  <div style="margin-top:8px;font-size:11px;color:#666">All Rights Reserved &copy; __YEAR__</div>
 </footer>
 </body></html>
 """
 
-LOGIN_HTML = r"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>M1NX PREMIUM - Login</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:radial-gradient(circle at center,#141B3C 0%,#0A0E27 70%);min-height:100vh;display:flex;align-items:center;justify-content:center;color:#E8EAF6}
-.box{background:linear-gradient(135deg,rgba(20,27,60,0.95),rgba(30,40,80,0.95));border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:44px 36px;width:100%;max-width:420px;box-shadow:0 25px 60px rgba(0,0,0,0.6)}
-.logo{width:76px;height:76px;margin:0 auto 18px;border-radius:20px;background:linear-gradient(135deg,#FFD700,#FF6B6B);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;color:#0A0E27;box-shadow:0 0 40px rgba(255,215,0,0.5)}
-h1{font-family:'Orbitron',sans-serif;color:#FFD700;text-align:center;font-size:22px;margin-bottom:4px;letter-spacing:1px}
-.sub{text-align:center;color:#8B92B8;font-size:12px;margin-bottom:26px}
-label{color:#8B92B8;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;display:block;font-weight:600}
-input{width:100%;background:rgba(10,14,39,0.9);border:1px solid rgba(255,215,0,0.3);border-radius:8px;padding:12px 14px;color:#E8EAF6;font-size:14px;margin-bottom:14px;font-family:'Inter',sans-serif}
-input:focus{outline:none;border-color:#FFD700;box-shadow:0 0 0 3px rgba(255,215,0,0.1)}
-button{width:100%;background:linear-gradient(135deg,#FFD700,#FFA000);color:#0A0E27;border:none;padding:13px;border-radius:8px;font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;cursor:pointer;letter-spacing:1.5px;margin-top:8px;transition:all 0.25s}
-button:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(255,215,0,0.4)}
-.err{background:rgba(255,82,82,0.15);border:1px solid #FF5252;color:#FF5252;padding:10px;border-radius:8px;margin-bottom:14px;text-align:center;font-size:12px}
-.tg{text-align:center;margin-top:20px;color:#8B92B8;font-size:11px;border-top:1px solid rgba(255,215,0,0.1);padding-top:16px}
-.tg a{color:#00D9FF;text-decoration:none;font-weight:600}
-</style></head>
-<body>
-<div class="box">
-  <div class="logo">M</div>
-  <h1>M1NX PREMIUM</h1>
-  <div class="sub">Owner : M1NXGAMINGVIP</div>
-  {% if error %}<div class="err">{{error}}</div>{% endif %}
-  <form method="POST">
-    <label>Username</label>
-    <input name="username" required autofocus placeholder="m1nx">
-    <label>Password</label>
-    <input name="password" type="password" required placeholder="Enter password">
-    <button type="submit">LOGIN</button>
-  </form>
-  <div class="tg">Support : <a href="https://t.me/M1NXGAMINGVIP">@M1NXGAMINGVIP</a></div>
-</div>
-</body></html>
-"""
-
-def render(title, page, content):
-    html = BASE_HTML.replace("{{ title }}", title).replace("{{ content|safe }}", content)
-    html = html.replace("{{ 'active' if page=='" + page + "' }}", "active")
-    # Remove any other page=... replacements
+def render_page(title, page, content):
+    html = BASE_HTML
+    html = html.replace("__TITLE__", title)
+    html = html.replace("__OWNER__", OWNER_NAME)
+    html = html.replace("__OWNER_TG__", OWNER_TG)
+    html = html.replace("__OWNER_TG_CLEAN__", OWNER_TG.replace("@",""))
+    html = html.replace("__YEAR__", str(datetime.now().year))
+    html = html.replace("__CONTENT__", content)
+    # Active class
     for p in ["dash","dev","acc","gen","log","dl"]:
-        if p != page:
-            html = html.replace("{{ 'active' if page=='" + p + "' }}", "")
-    html = html.replace("{{year}}", str(datetime.now().year))
+        html = html.replace(f"__ACT_{p}__", "active" if p == page else "")
+    # Flash messages
+    flash_html = ""
+    from flask import get_flashed_messages
+    for cat, msg in get_flashed_messages(with_categories=True):
+        flash_html += f'<div class="flash {cat}">{msg}</div>'
+    html = html.replace("__FLASH__", flash_html)
     return html
 
-def require_login(f):
-    @wraps(f)
-    def w(*a, **k):
-        if not session.get("user"): return redirect("/login")
-        return f(*a, **k)
-    return w
-
-# ═══════════════════════ ROUTES ═══════════════════════
-@app.route("/login", methods=["GET","POST"])
-def login():
-    err = None
-    if request.method == "POST":
-        if request.form.get("username") == ADMIN_USER and request.form.get("password") == ADMIN_PASS:
-            session["user"] = ADMIN_USER
-            identify_device(request)
-            return redirect("/")
-        err = "Invalid username or password"
-    return render_template_string(LOGIN_HTML, error=err)
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
-
+# ═══════════════════════ ROUTES (NO LOGIN) ═══════════════════════
 @app.route("/")
-@require_login
 def dash():
     dev = identify_device(request)
     devs = db.devices()
@@ -914,8 +808,8 @@ def dash():
     <div class="hero">
       <div class="hero-logo">M</div>
       <h1>M1NX PREMIUM</h1>
-      <p>Advanced Account Generator | Owner : M1NXGAMINGVIP</p>
-      <p style="margin-top:8px"><a class="tg-link" href="https://t.me/M1NXGAMINGVIP">Telegram DM : @M1NXGAMINGVIP</a></p>
+      <p>Advanced Account Generator | Owner : {OWNER_NAME}</p>
+      <p style="margin-top:8px"><a class="tg-link" href="https://t.me/{OWNER_TG.replace('@','')}">Telegram DM : {OWNER_TG}</a></p>
     </div>
     <div class="grid-3">
       <div class="stat"><div class="stat-label"><span class="dot"></span>Total Devices</div><div class="stat-value">{len(devs)}</div></div>
@@ -931,11 +825,11 @@ def dash():
       <div class="log-box">{log_lines}</div>
     </div>
     """
-    return render("Dashboard", "dash", content)
+    return render_page("Dashboard", "dash", content)
 
 @app.route("/devices")
-@require_login
 def devices():
+    identify_device(request)
     devs = db.devices()
     rows = "".join(
         f'<tr><td><b style="color:#FFD700">{d["device_id"]}</b></td>'
@@ -951,14 +845,14 @@ def devices():
     content = f"""
     <div class="card">
       <div class="card-title">All Devices ({len(devs)})</div>
-      <p style="color:#8B92B8;font-size:13px;margin-bottom:14px">Each device is tracked separately. You can see what each device is currently doing.</p>
+      <p style="color:#8B92B8;font-size:13px;margin-bottom:14px">Each device tracked separately. All devices share the same database.</p>
       <table class="table"><thead><tr><th>Device ID</th><th>Name</th><th>Platform</th><th>IP</th><th>Generated</th><th>Current Action</th><th>Status</th><th>Last Seen</th><th></th></tr></thead><tbody>{rows}</tbody></table>
     </div>"""
-    return render("Devices", "dev", content)
+    return render_page("Devices", "dev", content)
 
 @app.route("/device/<did>")
-@require_login
 def device_detail(did):
+    identify_device(request)
     d = db.device(did)
     if not d: return redirect("/devices")
     accs = db.accounts(did, limit=999)
@@ -987,8 +881,7 @@ def device_detail(did):
       </div>
       <p style="margin-top:16px;color:#8B92B8;font-size:12px;line-height:1.8">
         <b>IP:</b> {d['ip']}<br>
-        <b>First Seen:</b> {d['first_seen']} &nbsp;|&nbsp; <b>Last Seen:</b> {d['last_seen']}<br>
-        <b>User-Agent:</b> <span style="word-break:break-all">{d['ua'][:180]}</span>
+        <b>First Seen:</b> {d['first_seen']} &nbsp;|&nbsp; <b>Last Seen:</b> {d['last_seen']}
       </p>
     </div>
     <div class="card">
@@ -999,11 +892,11 @@ def device_detail(did):
       <div class="card-title">Activity Logs</div>
       <div class="log-box">{log_lines}</div>
     </div>"""
-    return render("Device Detail", "dev", content)
+    return render_page("Device Detail", "dev", content)
 
 @app.route("/accounts")
-@require_login
 def accounts():
+    identify_device(request)
     reg = request.args.get("region","")
     did = request.args.get("device","")
     accs = db.accounts(did or None, region=reg or None)
@@ -1027,10 +920,9 @@ def accounts():
       </div>
       <table class="table"><thead><tr><th>Account</th><th>Name</th><th>Region</th><th>UID</th><th>Password</th><th>Device</th><th>Status</th><th>Created</th></tr></thead><tbody>{rows}</tbody></table>
     </div>"""
-    return render("Accounts", "acc", content)
+    return render_page("Accounts", "acc", content)
 
 @app.route("/generate", methods=["GET","POST"])
-@require_login
 def generate_page():
     dev = identify_device(request)
     if request.method == "POST":
@@ -1039,14 +931,14 @@ def generate_page():
             region = request.form.get("region","BD")
             if count <= 0 or count > 100: raise ValueError
             threading.Thread(target=run_generation, args=(dev["device_id"], region, count), daemon=True).start()
-            flash(f"Generation started: {count} x {region}. Check Logs page.", "success")
+            flash(f"Generation started: {count} x {region}. Watch Logs.", "success")
             return redirect("/logs")
         except Exception:
             flash("Invalid input", "error")
     content = f"""
     <div class="card">
       <div class="card-title">Start Generation</div>
-      <p style="color:#8B92B8;font-size:13px;margin-bottom:16px">The system will keep retrying until the target count is reached.</p>
+      <p style="color:#8B92B8;font-size:13px;margin-bottom:16px">System will retry automatically until target is reached.</p>
       <form method="POST">
         <div class="grid-2">
           <div><label>How many accounts</label><input class="input" name="count" type="number" value="5" min="1" max="100" required></div>
@@ -1066,15 +958,15 @@ def generate_page():
         <b style="color:#FFD700">Your Device:</b> {dev['device_id']}<br>
         <b style="color:#FFD700">Prefix:</b> {CUSTOM_PREFIX}XXXXXX<br>
         <b style="color:#FFD700">Bio:</b> {CUSTOM_BIO}<br>
-        <b style="color:#FFD700">Owner:</b> M1NXGAMINGVIP &nbsp;|&nbsp;
-        <b style="color:#FFD700">Telegram:</b> <a href="https://t.me/M1NXGAMINGVIP" style="color:#00D9FF">@M1NXGAMINGVIP</a>
+        <b style="color:#FFD700">Owner:</b> {OWNER_NAME} &nbsp;|&nbsp;
+        <b style="color:#FFD700">Telegram:</b> <a href="https://t.me/{OWNER_TG.replace('@','')}" style="color:#00D9FF">{OWNER_TG}</a>
       </p>
     </div>"""
-    return render("Generate", "gen", content)
+    return render_page("Generate", "gen", content)
 
 @app.route("/logs")
-@require_login
 def logs_page():
+    identify_device(request)
     all_logs = db.logs(limit=200)
     lines = "".join(
         f'<div class="log-line {l["level"]}"><span class="ts">[{l["ts"]}]</span>'
@@ -1097,11 +989,11 @@ def logs_page():
       }});
       setTimeout(() => location.reload(), 25000);
     </script>"""
-    return render("Live Logs", "log", content)
+    return render_page("Live Logs", "log", content)
 
 @app.route("/download")
-@require_login
 def download_page():
+    identify_device(request)
     _refresh_download_files()
     files = sorted(os.listdir(DOWNLOAD_DIR))
     rows = "".join(
@@ -1113,27 +1005,24 @@ def download_page():
     content = f"""
     <div class="card">
       <div class="card-title">Auto Download Files ({len(files)})</div>
-      <p style="color:#8B92B8;font-size:13px;margin-bottom:14px">Files are auto-generated after each successful account creation.</p>
+      <p style="color:#8B92B8;font-size:13px;margin-bottom:14px">Files auto-refresh after each account creation.</p>
       <table class="table"><thead><tr><th>File</th><th>Size</th><th>Action</th></tr></thead><tbody>{rows}</tbody></table>
     </div>"""
-    return render("Download", "dl", content)
+    return render_page("Download", "dl", content)
 
 @app.route("/download/<path:fn>")
-@require_login
 def download_file(fn):
     return send_from_directory(DOWNLOAD_DIR, fn, as_attachment=True)
 
 @app.route("/api/stats")
-@require_login
 def api_stats():
-    return jsonify({"devices":len(db.devices()),"accounts":len(db.accounts(limit=99999)),
-                    "owner":OWNER_NAME,"telegram":OWNER_TG})
+    return jsonify({"devices": len(db.devices()), "accounts": len(db.accounts(limit=99999)),
+                    "owner": OWNER_NAME, "telegram": OWNER_TG})
 
 # ═══════════════════════ STARTUP ═══════════════════════
 def _start_tg_thread():
     if TG_BOT_TOKEN:
-        t = threading.Thread(target=tg_poll_loop, daemon=True)
-        t.start()
+        threading.Thread(target=tg_poll_loop, daemon=True).start()
         print("[TG] Bot started")
 
 _start_tg_thread()
@@ -1141,11 +1030,9 @@ _start_tg_thread()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print("=" * 60)
-    print(f"  M1NX PREMIUM SYSTEM STARTED")
+    print(f"  M1NX PREMIUM — NO LOGIN MODE")
     print(f"  Owner     : {OWNER_NAME}")
     print(f"  Telegram  : {OWNER_TG}")
-    print(f"  Login User: {ADMIN_USER}")
-    print(f"  Login Pass: {ADMIN_PASS}")
     print(f"  Port      : {port}")
     print("=" * 60)
     socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
